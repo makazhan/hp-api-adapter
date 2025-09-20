@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harry Potter Explorer</title>
+  <style>
+    @font-face {
+      font-family: 'Black Chancery';
+      src: url('fonts/BlackChancery.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      background-color: #2b2b2b; /* dark grey */
+      color: #dcdcdc;            /* light grey */
+      font-family: 'Black Chancery', serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background-color: #3a3a3a;
+      border: 1px solid #555;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.6);
+      max-width: 900px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .card-body {
+      padding: 25px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .details {
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: 20px;
+      padding: 0 20px 20px;
+    }
+
+    .details-text {
+      flex: 2;
+      text-align: left;
+    }
+
+    .details-text p {
+      margin: 6px 0;
+    }
+
+    .details img {
+      flex: 1;
+      max-width: 250px;
+      border-radius: 8px;
+    }
+
+    .back-link {
+        display: flex;
+        justify-content: space-between; /* pushes links apart */
+        margin: 20px 8px;               /* 8px horizontal margins */
+        font-size: 1.2rem;
+    }
+
+    .back-link a {
+        color: #e0e0e0;
+        text-decoration: none;
+    }
+
+    .back-link a:hover {
+        text-decoration: underline;
+    }
+
+    a {
+      color: #e0e0e0;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-body">
+      <h1 id="char-name">Character</h1>
+    </div>
+
+    <div style="position: relative; display: inline-block; width: 100%;">
+      <img src="images/cafe.jpg" title="Cafe on 6a Nicolson St., Edinburgh" alt="Cafe on 6a Nicolson St., Edinburgh" style="width: 100%; height: auto; display: block;">
+      <div style="
+        position: absolute;
+        bottom: 8px;
+        right: 12px;
+        font-size: 0.7rem;
+        font-family: Arial, sans-serif;
+        color: black;
+        background: rgba(255,255,255,0.6);
+        padding: 2px 6px;
+        border-radius: 4px;
+      ">
+        source: <a href="https://everythingedinburgh.com/harry-potter-sites-in-edinburgh/" style="color:black; font-size: 0.7rem;">everythingedinburgh.com</a>
+      </div>
+    </div>
+
+    <div id="char-details" class="details"></div>
+
+    <div id="chat-box" style="margin: 20px; text-align:left; font-family: Georgia, Times New Roman, serif;">
+        <h2>Chat with <span id="char-chat-name"></span></h2>
+        <div id="messages" style="border:1px solid #555; border-radius:6px; padding:10px; height:200px; overflow-y:auto; background:#2b2b2b; margin-bottom:10px;">
+            <div style="color:#aaa;">Start the conversation!</div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <input id="chat-input" type="text" placeholder="Say something..." style="flex:1; padding:6px; border-radius:6px; border:1px solid #555; background:#3a3a3a; color:#dcdcdc;">
+            <button id="chat-send" style="padding:6px 12px; border-radius:6px; background:#555; color:#fff; border:none;">Send</button>
+        </div>
+    </div>
+
+    <div class="back-link">
+        <a href="characters.html" class="left-link">← back to Characters</a>
+        <a href="index.html" class="right-link">← back to Potterrow</a>
+    </div>
+  </div>
+
+  <script>
+    // extract character ID from URL query string
+    const params = new URLSearchParams(window.location.search);
+    const charId = params.get('id');
+
+    async function loadCharacter() {
+      if (!charId) return;
+
+      try {
+        const res = await fetch(`/api/character/${charId}`);
+        const data = await res.json();
+        const c = data[0];
+
+        document.getElementById('char-name').textContent = c.name;
+        document.getElementById('char-chat-name').textContent = c.name;
+
+        const container = document.getElementById('char-details');
+        container.innerHTML = `
+          <div class="details-text">
+            <p><strong>Alternate names:</strong> ${c.alternate_names.join(', ') || '—'}</p>
+            <p><strong>House:</strong> ${c.house || '—'}</p>
+            <p><strong>Date of Birth:</strong> ${
+                c.dateOfBirth 
+                    ? c.dateOfBirth 
+                    : (c.yearOfBirth ? c.yearOfBirth : '—')
+                }</p>
+            <p><strong>Species:</strong> ${c.species || '—'}</p>
+            <p><strong>Gender:</strong> ${c.gender || '—'}</p>
+            <p><strong>Ancestry:</strong> ${c.ancestry || '—'}</p>
+            <p><strong>Eye Colour:</strong> ${c.eyeColour || '—'}</p>
+            <p><strong>Hair Colour:</strong> ${c.hairColour || '—'}</p>
+            <p><strong>Wand:</strong> ${c.wand.wood || ''} ${c.wand.core ? `with ${c.wand.core}` : ''} ${c.wand.length ? `(${c.wand.length}")` : ''}</p>
+            <p><strong>Patronus:</strong> ${c.patronus || '—'}</p>
+            <p><strong>Actor:</strong> ${c.actor || '—'}</p>
+          </div>
+          <img src="${c.image}" alt="${c.name}">
+        `;
+      } catch (err) {
+        console.error('Failed to load character', err);
+      }
+    }
+
+    loadCharacter();
+
+    let characterName = document.getElementById('char-name').textContent;
+
+    async function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        const messagesDiv = document.getElementById('messages');
+        const userBubble = document.createElement('div');
+        userBubble.style.color = "#fff";
+        userBubble.textContent = "You: " + msg;
+        messagesDiv.appendChild(userBubble);
+
+        input.value = "";
+
+        const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ character: characterName, message: msg })
+        });
+        const data = await res.json();
+
+        const replyBubble = document.createElement('div');
+        replyBubble.style.color = "#90ee90";
+        replyBubble.textContent = characterName + ": " + data.reply;
+        messagesDiv.appendChild(replyBubble);
+
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Hook events
+    document.getElementById('chat-send').addEventListener('click', sendMessage);
+    document.getElementById('chat-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter') sendMessage();
+    });
+
+    // // after character loads
+    // document.getElementById('char-chat-name').textContent = characterName;
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harry Potter Explorer</title>
+  <style>
+    @font-face {
+      font-family: 'Black Chancery';
+      src: url('fonts/BlackChancery.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      background-color: #2b2b2b;
+      color: #dcdcdc;
+      font-family: 'Black Chancery', serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    input, select {
+      padding: 5px;
+      border-radius: 5px;
+      border: 1px solid #555;
+      background-color: #3a3a3a;
+      color: #dcdcdc;
+      font-family: inherit;
+    }
+
+    .card-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* make the whole card look & behave like a clickable control */
+    .character-card {
+      background-color: #3a3a3a;
+      border: 1px solid #555;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.6);
+      text-align: center;
+      padding: 15px;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      outline: none;
+    }
+
+    .character-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      border-color: #777;
+    }
+
+    .character-card:focus {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      border-color: #999;
+    }
+
+    .character-card img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .character-card h2 {
+      font-size: 1.2rem;
+      margin: 5px 0;
+    }
+
+    .character-card p {
+      margin: 3px 0;
+      font-size: 0.9rem;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    a {
+      color: #e0e0e0;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Harry Potter Characters</h1>
+
+  <div class="controls">
+    <input type="text" id="searchBox" placeholder="Search by name...">
+    <select id="houseFilter">
+      <option value="">All Houses</option>
+      <option value="Gryffindor">Gryffindor</option>
+      <option value="Slytherin">Slytherin</option>
+      <option value="Hufflepuff">Hufflepuff</option>
+      <option value="Ravenclaw">Ravenclaw</option>
+    </select>
+  </div>
+
+  <div class="card-container" id="characters"></div>
+  <p id="noResults" style="text-align:center; margin-top:20px; display:none;">No characters found.</p>
+  <div id="loading" style="text-align:center; margin:20px; display:none;">Loading...</div>
+  <div class="back-link">
+    <a href="index.html">back to Potterrow</a>
+  </div>
+
+  <script>
+    let currentPage = 1;
+    let loading = false;
+    let lastQuery = { search: "", house: "" };
+    const pageSize = 10;
+
+    async function loadCharacters(reset = false) {
+      if (loading) return;
+      loading = true;
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('noResults').style.display = 'none';
+
+      if (reset) {
+        document.getElementById('characters').innerHTML = '';
+        currentPage = 1;
+      }
+
+      try {
+        const houseParam = encodeURIComponent(lastQuery.house || '');
+        const searchParam = encodeURIComponent(lastQuery.search || '');
+        const url = `/api/characters?page=${currentPage}&page_size=${pageSize}&house=${houseParam}&search=${searchParam}`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Network response was not ok');
+        const data = await res.json();
+
+        const container = document.getElementById('characters');
+        if (reset && (!data.results || data.results.length === 0)) {
+          document.getElementById('noResults').style.display = 'block';
+        }
+
+        function escapeHtml(str) {
+          if (!str && str !== '') return '';
+          return String(str)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+        }
+
+        data.results.forEach(c => {
+          const id = c.id || '';
+
+          const card = document.createElement('div');
+          card.className = 'character-card';
+          card.setAttribute('role', 'button');       // accessibility
+          card.setAttribute('tabindex', '0');        // make focusable
+          card.setAttribute('aria-label', `View ${c.name || 'character'}`);
+          card.dataset.id = id;
+
+          card.innerHTML = `
+            <img src="${escapeHtml(c.image || 'images/placeholder.png')}" alt="${escapeHtml(c.name || '')}">
+            <h2>${escapeHtml(c.name || '')}</h2>
+            <p><strong>House:</strong> ${escapeHtml(c.house || '—')}</p>
+            <p><strong>Patronus:</strong> ${escapeHtml(c.patronus || '—')}</p>
+          `;
+
+          // click => go to details page
+          card.addEventListener('click', () => {
+            if (!card.dataset.id) return;
+            window.location.href = `/character.html?id=${encodeURIComponent(card.dataset.id)}`;
+          });
+
+          // keyboard support (Enter or Space)
+          card.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+              ev.preventDefault();
+              card.click();
+            }
+          });
+
+          container.appendChild(card);
+        });
+
+        // advance page if there are more results
+        const hasMore = currentPage * pageSize < (data.total || 0);
+        if (hasMore) currentPage++;
+      } catch (err) {
+        console.error('Failed to load characters', err);
+      } finally {
+        // always clear loading flag so subsequent interactions work
+        loading = false;
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    // Initial load
+    loadCharacters();
+
+    // Lazy load on scroll
+    window.addEventListener('scroll', () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+        loadCharacters();
+      }
+    });
+
+    // Search and filter events
+    let searchDebounce = null;
+    document.getElementById('searchBox').addEventListener('input', e => {
+      clearTimeout(searchDebounce);
+      const val = e.target.value;
+      searchDebounce = setTimeout(() => {
+        lastQuery.search = val;
+        loadCharacters(true);
+      }, 250);
+    });
+
+    document.getElementById('houseFilter').addEventListener('change', e => {
+      lastQuery.house = e.target.value;
+      loadCharacters(true);
+    });
+
+  </script>
+
+</body>
+</html>
