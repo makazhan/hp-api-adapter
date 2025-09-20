@@ -177,9 +177,8 @@
 
     loadCharacter();
 
-    let characterName = document.getElementById('char-name').textContent;
-
     async function sendMessage() {
+        const characterName = document.getElementById('char-name').textContent
         const input = document.getElementById('chat-input');
         const msg = input.value.trim();
         if (!msg) return;
